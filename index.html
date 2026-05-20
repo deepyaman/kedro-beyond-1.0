@@ -1,0 +1,1884 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Kedro: Beyond 1.0 — LF AI &amp; Data Mini Summit</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<script src="deck-stage.js"></script>
+<script type="application/json" id="speaker-notes">
+[
+  "Hey everyone — I'm Deepyaman Datta, a Kedro maintainer on the Technical Steering Committee, and I'm thrilled to be back at an LF AI and Data event. We graduated last December, we shipped 1.0 in July, and a LOT has happened since. So in the next ten minutes I want to give you a tour: what Kedro is, what we shipped, what the ecosystem looks like, where we're heading, and a couple of really cool open-science projects built on top of us. Buckle in — this is a lightning talk so I'm going to move fast. Let's go.",
+  "So — what is Kedro? It's an open-source Python framework for building reproducible, maintainable, and modular data pipelines. It came out of QuantumBlack — AI by McKinsey — in 2019, joined the Linux Foundation in 2022, and graduated within LF AI and Data in December 2024. Today it's used in production at organizations like Goldman Sachs, ING, Astronomer, PhysicsX, Printify, Société Générale Assurances, and QuantumBlack of course — all of whom also help maintain it. Around 10,000 GitHub stars, 2,600+ users in Slack. The headline: it's a toolbox for production-ready data pipelines.",
+  "Four ideas hold the framework together. A project template, so any Kedro project you open has the same layout. A data catalog that separates I/O from logic. Nodes — plain Python functions. And pipelines, which compose those nodes into a DAG. I'll walk through each one, briefly.",
+  "First — the project template. When you run kedro new, you get an opinionated, standardized layout. Code lives in src, configuration lives in conf with base plus environment overrides, data lives in layered folders from raw through model output. Tests, notebooks, pyproject.toml — all in known places. Walk into any Kedro repo and you know exactly where to look. This is one of the unsexy features that actually saves teams the most time.",
+  "Next — the data catalog. It's a YAML file that maps a dataset name to a type and a location. Your Python code only ever sees the name — 'shuttle_metrics' — never the path or the credentials or the file format. That means swapping a CSV for Parquet, or local for S3, is a one-line change in YAML. No node code changes. This is the single feature that unlocks everything else: testing, environment switching, deployment.",
+  "Now — nodes. And this is the part I want to drive home: a node is just a Python function. No decorators, no base classes, no framework magic. Type hints if you want them, docstrings if you want them, it's regular Python. You can import it into a notebook and call it directly. You can unit-test it with stock pytest. That's it.",
+  "Pipelines compose those nodes into a DAG. You wrap each function with node(), declare its inputs and outputs by name, and Kedro figures out the order. The names match the catalog from two slides ago — that's how the wiring happens. Same code, swap the runner: sequential, parallel, threaded. No DSL, no orchestrator lock-in. Pure Python in, DAG out.",
+  "I want to share one quote that I love, because it captures the positioning really well. Cody Peterson — Technical Product Manager at Voltron Data, formerly at dbt Labs — put it this way: Kedro is like dbt if it were created by Python data scientists instead of SQL data analysts. Same DNA: software engineering best practices, modular projects, reproducible runs. Different audience.",
+  "Okay — Kedro 1.0. Six years in the open, and last July we hit the big one-point-oh. This isn't just a version bump. It's a statement: stable, curated core. A public API designed for longevity. Six years of feedback baked in. If you've been hesitating to adopt Kedro because you weren't sure where the API was going — that conversation is over.",
+  "Quick tour of what's actually in 1.0. The DataCatalog got a full redesign — datasets are first-class citizens, dict-like access, iteration, the whole thing. Namespaces work the way you'd expect now. Runners got smarter — ParallelRunner finally works with PartitionedDataset. And after years of requests, we shipped 'kedro run --only-missing-outputs' — skip nodes whose outputs already exist. Kedro-Viz 12 added a workflow view so you can see run status right in the graph. And there's a brand new docs site. Lots more — go read the release notes.",
+  "Beyond the core, the integration story is where a lot of the action happens. On the left — Kedro-maintained: Viz, Datasets, Airflow, Docker, the VS Code extension, plus native integrations like Pydantic that just landed and Pandera coming soon. Versioned alongside the framework, shipped under kedro-org. On the right — community-led: MLflow, Databricks, Dagster, VertexAI, AzureML, Kubeflow, SageMaker, Boot, Semantic-Layer. Independent maintainers connecting Kedro to the rest of your stack. Let's zoom into three of those.",
+  "Three integrations I want to call out today. Kedro-MLflow — and I love this one for an LF AI and Data audience because MLflow is also a Linux Foundation project — gives you experiment tracking, model registry, model serving, all wired into Kedro automatically. Kedro-Databricks — community-led by Jens Peder Meldgaard — three commands and your project ships as a Declarative Automation Bundle. Recent additions: workspace permissions, Unity Catalog volumes, parameterized job clusters. There was a great update on that recently from Telenor. And Kedro-Dagster — announced last year — lets you author in Kedro and orchestrate with Dagster. Each of these is a real production path, not a toy.",
+  "Where is Kedro heading on AI? Three audiences. For users — better support for the unstructured and semi-structured data that GenAI pipelines deal with. For contributors — making Kedro itself easier for AI assistants to navigate; better docs, better discoverability, MCP eventually. For GenAI builders — bringing software engineering rigor to agentic and RAG workflows that today feel a lot like the data science notebooks of 2018. We've already shipped a LangChain example on the blog. Lots more coming.",
+  "It's not all about AI. Two of the most-requested features on the roadmap have nothing to do with GenAI — and I want to flag them. First: Kedro Builder. A visual, drag-and-drop pipeline builder. Compose nodes, wire datasets, edit parameters from the browser — and what you get out is the same Kedro project, same git history. Huge unlock for analysts and PMs who want to author without leaving the browser. Second, coming soon: an enhanced Kedro session supporting repeated, multi-run execution, plus a public API layer for pipeline execution and inspection. That's Kedro as a callable service — long-running processes, parameter sweeps, HTTP boundaries. Both of these are pure core. No AI required.",
+  "Now for the part I'm most excited about. Kedro for open science. Reproducibility is the headline word in open science, and reproducibility is literally Kedro's tagline. So it should be no surprise that we're showing up in serious scientific computing projects. I want to spotlight two.",
+  "First — MATRIX, from Every Cure. Every Cure is a nonprofit building a knowledge graph of every disease and every drug, with the goal of finding new uses for existing approved drugs. Drug repurposing. Their entire data pipeline — ingesting clinical data, biomedical ontologies, computing embeddings, ranking candidates — is a Kedro project. It's on GitHub at every-cure-org slash matrix. Real production science, fully reproducible, fully open.",
+  "Second — OptimusKG, out of the Marinka Zitnik lab at Harvard. A biomedical knowledge graph integrating sixty-five heterogeneous resources across eighteen ontologies. Hundred and ninety thousand nodes, twenty-two million edges, sixty-seven million property instances. The whole pipeline — reproducible, deterministic, infrastructure-agnostic, parallel — built on Kedro. Independently validated using PaperQA3. Distributed as Apache Parquet, downloadable via a Python client. This is the level of rigor Kedro was designed for.",
+  "That's the tour. We're past 1.0, the ecosystem is humming, we have a really clear set of bets going forward, and the open-science work is genuinely thrilling. If anything here landed for you — join Slack, star the repo, come to a Coffee Chat. We love new contributors. I'm Deepyaman, find me on GitHub at deepyaman. Thank you."
+]
+</script>
+
+<style>
+:root {
+  /* Kedro brand */
+  --k-yellow: #FFC900;
+  --k-yellow-soft: #FFE066;
+  --k-ink: #141414;
+  --k-ink-soft: #2A2722;
+  --k-cream: #FCF5EC;
+  --k-cream-2: #F3EBDC;
+  --k-line: #1A1A1A;
+  --k-muted: #6B6359;
+  --k-rule: rgba(20,20,20,0.12);
+  --k-rule-strong: rgba(20,20,20,0.22);
+  --k-rule-dark: rgba(252,245,236,0.18);
+
+  /* type scale @ 1920x1080 */
+  --type-display: 168px;
+  --type-mega:    120px;
+  --type-title:   72px;
+  --type-subtitle:44px;
+  --type-body:    32px;
+  --type-small:   26px;
+  --type-eyebrow: 24px;
+  --type-code:    28px;
+
+  /* spacing */
+  --pad-top: 96px;
+  --pad-bottom: 88px;
+  --pad-x: 110px;
+  --gap-title: 48px;
+  --gap-item: 28px;
+}
+
+html, body { margin: 0; padding: 0; background: #000; }
+deck-stage { font-family: 'Manrope', system-ui, sans-serif; color: var(--k-ink); }
+
+deck-stage > section {
+  background: var(--k-cream);
+  font-family: 'Manrope', system-ui, sans-serif;
+  color: var(--k-ink);
+  font-weight: 400;
+  letter-spacing: -0.005em;
+  overflow: hidden;
+}
+
+/* —————————————— shared chrome —————————————— */
+.frame {
+  position: absolute;
+  inset: 0;
+  padding: var(--pad-top) var(--pad-x) var(--pad-bottom);
+  display: flex;
+  flex-direction: column;
+}
+.frame.dark { background: var(--k-ink); color: var(--k-cream); }
+
+.brandbar {
+  position: absolute;
+  top: 44px;
+  left: var(--pad-x);
+  right: var(--pad-x);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--type-eyebrow);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--k-muted);
+}
+.dark .brandbar { color: rgba(252,245,236,0.55); }
+.brandbar .left { display: flex; align-items: center; gap: 14px; }
+.brandbar .logo-dot {
+  width: 18px; height: 18px; border-radius: 4px;
+  background: var(--k-yellow);
+  display: inline-block;
+}
+.brandbar .logo-dot.k {
+  background: var(--k-yellow);
+  position: relative;
+}
+.brandbar .logo-dot.k::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  background: var(--k-ink);
+  clip-path: polygon(0 0, 35% 0, 35% 40%, 60% 40%, 100% 0, 100% 0, 55% 50%, 100% 100%, 60% 100%, 35% 60%, 35% 100%, 0 100%);
+}
+.dark .brandbar .logo-dot.k::after { background: var(--k-ink); }
+.brandbar .right { font-weight: 500; letter-spacing: 0.04em; text-transform: none; }
+
+.footnum {
+  position: absolute;
+  bottom: 40px;
+  left: var(--pad-x);
+  font-size: var(--type-eyebrow);
+  font-weight: 600;
+  color: var(--k-muted);
+  letter-spacing: 0.06em;
+}
+.dark .footnum { color: rgba(252,245,236,0.4); }
+.foothint {
+  position: absolute;
+  bottom: 40px;
+  right: var(--pad-x);
+  font-size: var(--type-eyebrow);
+  color: var(--k-muted);
+  font-weight: 500;
+}
+.dark .foothint { color: rgba(252,245,236,0.55); }
+
+/* —————————————— typography helpers —————————————— */
+.eyebrow {
+  font-size: var(--type-eyebrow);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--k-muted);
+  margin: 0 0 32px 0;
+}
+.dark .eyebrow { color: var(--k-yellow); }
+.eyebrow.yellow { color: var(--k-ink); }
+.dark .eyebrow.yellow { color: var(--k-yellow); }
+
+.eyebrow .dash {
+  display: inline-block;
+  width: 36px;
+  height: 2px;
+  background: currentColor;
+  margin-right: 14px;
+  vertical-align: middle;
+}
+
+h1.slide-title {
+  font-size: var(--type-title);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.04;
+  margin: 0 0 var(--gap-title) 0;
+  max-width: 1500px;
+  text-wrap: balance;
+}
+
+p.lede {
+  font-size: var(--type-subtitle);
+  font-weight: 400;
+  line-height: 1.22;
+  letter-spacing: -0.01em;
+  margin: 0;
+  max-width: 1400px;
+  text-wrap: pretty;
+}
+p.body {
+  font-size: var(--type-body);
+  line-height: 1.4;
+  font-weight: 400;
+  margin: 0;
+  text-wrap: pretty;
+}
+.small { font-size: var(--type-small); color: var(--k-muted); }
+.dark .small { color: rgba(252,245,236,0.6); }
+
+/* —————————————— code blocks —————————————— */
+.code {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 24px;
+  line-height: 1.4;
+  background: var(--k-ink);
+  color: var(--k-cream);
+  border-radius: 12px;
+  padding: 24px 32px;
+  white-space: pre;
+  letter-spacing: -0.005em;
+  box-shadow: 0 30px 60px -30px rgba(20,20,20,0.35);
+}
+.code .c { color: #9C9285; }
+.code .k { color: #FFC900; }
+.code .s { color: #B8E0B0; }
+.code .n { color: #FFD661; }
+.code .v { color: #FCF5EC; }
+.code .p { color: #9C9285; }
+.code .fn { color: #FFE066; }
+.code .ty { color: #87CEEB; }
+
+/* —————————————— slide-specific —————————————— */
+
+/* 01 Title */
+section.s-title { background: var(--k-ink); color: var(--k-cream); }
+.title-grid {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: 1fr auto;
+}
+.title-bg {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 82% 18%, rgba(255,201,0,0.18), transparent 45%),
+    radial-gradient(circle at 12% 88%, rgba(255,201,0,0.07), transparent 55%);
+  pointer-events: none;
+}
+.title-content {
+  position: relative;
+  padding: 120px var(--pad-x) 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-start;
+  gap: 56px;
+  height: 100%;
+  box-sizing: border-box;
+}
+.title-eyebrow {
+  font-size: var(--type-eyebrow);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--k-yellow);
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  white-space: nowrap;
+}
+.title-eyebrow .pill {
+  background: var(--k-yellow);
+  color: var(--k-ink);
+  padding: 8px 18px;
+  border-radius: 999px;
+  letter-spacing: 0.12em;
+  font-size: 24px;
+  white-space: nowrap;
+}
+.title-main {
+  font-size: 200px;
+  line-height: 0.92;
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  margin: 0;
+  color: var(--k-cream);
+}
+.title-main .beyond {
+  display: block;
+  color: var(--k-yellow);
+}
+.title-rule {
+  width: 220px;
+  height: 4px;
+  background: var(--k-yellow);
+}
+.title-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  width: 100%;
+  gap: 80px;
+}
+.title-meta .who {
+  font-size: 38px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.title-meta .who .name { color: var(--k-cream); }
+.title-meta .who .role { color: rgba(252,245,236,0.6); font-weight: 400; font-size: 28px; margin-top: 6px; display:block; }
+.title-meta .who .handles {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-top: 14px;
+}
+.title-meta .who .handle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 24px;
+  color: var(--k-yellow);
+  font-weight: 500;
+}
+.title-meta .who .handle + .handle { margin-top: 0; }
+.title-meta .who .handle.li { color: var(--k-cream); }
+.title-meta .who .handle.li svg { fill: var(--k-yellow); }
+.title-meta .event {
+  font-size: 24px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(252,245,236,0.55);
+  font-weight: 600;
+  text-align: right;
+  line-height: 1.5;
+}
+.title-meta .event b { color: var(--k-cream); font-weight: 700; letter-spacing: 0.04em; }
+
+.gh-logo { width: 28px; height: 28px; fill: currentColor; }
+
+/* 02 What is Kedro */
+.s-what .layout {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 80px;
+  flex: 1;
+  align-items: stretch;
+}
+.s-what .left { display: flex; flex-direction: column; justify-content: center; gap: 36px; }
+.s-what .tagline {
+  font-size: 88px;
+  font-weight: 700;
+  line-height: 1.18;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+.s-what .tagline em {
+  font-style: normal;
+  background: var(--k-yellow);
+  padding: 0 14px;
+  margin-left: -14px;
+  border-radius: 6px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.s-what .desc { font-size: 30px; line-height: 1.4; max-width: 720px; color: var(--k-ink-soft); }
+.s-what .right { display: flex; flex-direction: column; gap: 16px; justify-content: center; }
+.stat-card {
+  background: var(--k-cream-2);
+  border: 1px solid var(--k-rule-strong);
+  border-radius: 14px;
+  padding: 22px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.stat-card .n { font-size: 56px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; font-family: 'Manrope', sans-serif; }
+.stat-card .l { font-size: 24px; color: var(--k-muted); font-weight: 500; letter-spacing: 0.02em; }
+.stat-card.yellow { background: var(--k-yellow); border-color: rgba(20,20,20,0.18); }
+.stat-card.yellow .l { color: var(--k-ink); }
+.stat-card .l b { color: var(--k-ink); font-weight: 700; }
+
+/* maintainer logo wall on slide 2 */
+.stat-card.logos {
+  padding: 22px 28px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: hidden;
+}
+.stat-card.logos .logos-label {
+  font-size: 24px;
+  color: var(--k-muted);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.stat-card.logos .logo-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 46px;
+  gap: 22px 28px;
+  align-items: center;
+  justify-items: center;
+}
+.stat-card.logos .logo-grid img {
+  max-height: 100%;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  filter: grayscale(100%) contrast(1.05) opacity(0.82);
+}
+.stat-card.logos .logo-grid .wide {
+  grid-column: span 2;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.stat-card.logos .logo-grid .wide img {
+  max-height: 100%;
+}
+
+/* 03 Four concepts */
+.concepts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 32px;
+  flex: 1;
+}
+.concept {
+  border: 1.5px solid var(--k-rule-strong);
+  border-radius: 16px;
+  padding: 44px 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 18px;
+  background: var(--k-cream);
+  position: relative;
+}
+.concept .num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 24px;
+  color: var(--k-muted);
+  letter-spacing: 0.1em;
+}
+.concept h3 {
+  font-size: 44px;
+  font-weight: 700;
+  margin: 4px 0 0;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+.concept p { font-size: 24px; line-height: 1.35; color: var(--k-ink-soft); margin: 0; }
+.concept .glyph {
+  position: absolute;
+  top: 36px;
+  right: 36px;
+  width: 56px;
+  height: 56px;
+}
+
+/* 04 Catalog */
+.s-catalog .layout, .s-pipeline .layout, .s-template .layout {
+  display: grid;
+  grid-template-columns: 0.85fr 1.15fr;
+  gap: 64px;
+  flex: 1;
+  align-items: center;
+}
+.s-catalog .copy h2, .s-pipeline .copy h2, .s-template .copy h2 {
+  font-size: 60px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+  margin: 0 0 28px;
+}
+.s-catalog .copy p, .s-pipeline .copy p, .s-template .copy p {
+  font-size: 28px;
+  line-height: 1.4;
+  color: var(--k-ink-soft);
+}
+.kv-list { display: flex; flex-direction: column; gap: 14px; margin-top: 32px; }
+.kv-list .kv { display: flex; gap: 16px; align-items: flex-start; font-size: 24px; line-height: 1.4; }
+.kv-list .kv code { font-family: 'JetBrains Mono', monospace; font-size: 24px; }
+.kv-list .kv .dot { color: var(--k-yellow); font-weight: 800; line-height: 1.4; }
+.kv-list .kv b { color: var(--k-ink); font-weight: 700; }
+
+/* 06 Quote */
+.s-quote { background: var(--k-cream-2); }
+.s-quote .frame { justify-content: center; align-items: flex-start; }
+.s-quote .mark {
+  font-family: 'Manrope', sans-serif;
+  font-size: 220px;
+  line-height: 0.7;
+  color: var(--k-yellow);
+  font-weight: 800;
+  margin: 0 0 -30px -10px;
+}
+.s-quote blockquote {
+  margin: 0;
+  font-size: 64px;
+  line-height: 1.18;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  max-width: 1500px;
+  text-wrap: pretty;
+}
+.s-quote blockquote em { font-style: normal; background: var(--k-yellow); padding: 0 10px; border-radius: 4px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.s-quote .attr {
+  margin-top: 56px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.s-quote .attr .name { font-size: 32px; font-weight: 700; }
+.s-quote .attr .role { font-size: 26px; color: var(--k-muted); }
+.s-quote .attr .rule { width: 60px; height: 3px; background: var(--k-ink); }
+
+/* 07 Kedro 1.0 */
+.s-onezero { background: var(--k-ink); color: var(--k-cream); }
+.s-onezero .frame { justify-content: center; }
+.s-onezero .layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+}
+.onezero-mega {
+  font-size: 480px;
+  font-weight: 800;
+  line-height: 0.78;
+  letter-spacing: -0.06em;
+  color: var(--k-yellow);
+  margin: 0;
+}
+.onezero-mega .pt { color: var(--k-cream); }
+.s-onezero .right .eyebrow { color: var(--k-yellow); margin-bottom: 28px; }
+.s-onezero h2 {
+  font-size: 76px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+  margin: 0 0 28px;
+}
+.s-onezero p { font-size: 30px; line-height: 1.4; color: rgba(252,245,236,0.78); margin: 0; }
+.s-onezero .date {
+  margin-top: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 24px;
+  color: var(--k-yellow);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.s-onezero .date .pill {
+  background: var(--k-yellow);
+  color: var(--k-ink);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+/* 08 What landed */
+.landed-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 28px;
+  flex: 1;
+  margin-top: 8px;
+}
+.landed {
+  background: var(--k-cream);
+  border: 1.5px solid var(--k-rule-strong);
+  border-radius: 14px;
+  padding: 36px 38px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: relative;
+}
+.landed .tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 24px;
+  color: var(--k-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.landed h4 { font-size: 32px; font-weight: 700; line-height: 1.1; margin: 0; letter-spacing: -0.015em; }
+.landed p { font-size: 24px; line-height: 1.35; color: var(--k-ink-soft); margin: 0; }
+.landed.hero { background: var(--k-yellow); border-color: rgba(20,20,20,0.18); }
+.landed.hero p { color: var(--k-ink); }
+.landed code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 24px;
+  background: var(--k-ink);
+  color: var(--k-yellow);
+  padding: 4px 10px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-top: auto;
+}
+.landed.hero code { background: var(--k-ink); color: var(--k-yellow); }
+
+/* 09 Ecosystem */
+.s-eco { background: var(--k-cream-2); }
+.eco-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 36px;
+  flex: 1;
+  margin-top: 12px;
+}
+.eco-col {
+  background: var(--k-cream);
+  border-radius: 18px;
+  padding: 44px 48px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  border: 1.5px solid var(--k-rule-strong);
+  position: relative;
+  overflow: hidden;
+}
+.eco-col.maintained { background: var(--k-ink); color: var(--k-cream); border-color: var(--k-ink); }
+.eco-col .col-tag-OLD {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 24px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--k-muted);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.eco-col.maintained .col-tag-OLD { color: var(--k-yellow); }
+.eco-col .col-tag-OLD .marker {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--k-yellow);
+  display: inline-block;
+}
+.eco-col h3 {
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1;
+  margin: 0;
+  display: none;
+}
+.eco-col .col-tag {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  text-transform: none;
+  font-family: 'Manrope', sans-serif;
+  color: var(--k-ink);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.eco-col.maintained .col-tag { color: var(--k-cream); }
+.eco-col .col-tag .marker {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--k-yellow);
+  display: inline-block;
+}
+.eco-col .blurb {
+  font-size: 24px;
+  line-height: 1.35;
+  color: var(--k-ink-soft);
+  margin: 0;
+}
+.eco-col.maintained .blurb { color: rgba(252,245,236,0.7); }
+.eco-col .pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 12px;
+  margin-top: auto;
+  padding-top: 6px;
+}
+.eco-col .pill {
+  background: var(--k-cream-2);
+  border: 1.5px solid var(--k-rule-strong);
+  border-radius: 999px;
+  padding: 12px 22px;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+}
+.eco-col.maintained .pill {
+  background: rgba(255,201,0,0.12);
+  border-color: rgba(255,201,0,0.45);
+  color: var(--k-cream);
+}
+.eco-col .pill.hot {
+  background: var(--k-yellow);
+  color: var(--k-ink);
+  border-color: rgba(20,20,20,0.18);
+}
+.eco-col .footer-line {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 20px;
+  color: var(--k-muted);
+  letter-spacing: 0.04em;
+  margin-top: 4px;
+}
+.eco-col.maintained .footer-line { color: rgba(252,245,236,0.5); }
+
+/* 10 integrations */
+.integ-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 32px;
+  flex: 1;
+}
+.integ {
+  background: var(--k-cream);
+  border-radius: 18px;
+  padding: 48px 44px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  border: 1.5px solid var(--k-rule-strong);
+  position: relative;
+  overflow: hidden;
+}
+.integ .tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 24px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--k-muted);
+}
+.integ h3 { font-size: 40px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.05; margin: 0; }
+.integ h3 span.yellow-stripe { background: var(--k-yellow); padding: 0 6px; }
+.integ p { font-size: 24px; line-height: 1.35; color: var(--k-ink-soft); margin: 0; }
+.integ .lf-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  background: var(--k-ink);
+  color: var(--k-cream);
+  padding: 6px 12px;
+  border-radius: 999px;
+  align-self: flex-start;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.integ .lf-badge .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--k-yellow); }
+.integ .footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.integ .footer .row { font-size: 24px; color: var(--k-muted); font-family: 'JetBrains Mono', monospace; }
+.integ .footer .row b { color: var(--k-ink); font-weight: 600; }
+.integ .cmds {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 24px;
+  background: var(--k-ink);
+  color: var(--k-cream);
+  padding: 14px 18px;
+  border-radius: 8px;
+  white-space: pre;
+  line-height: 1.55;
+}
+.integ .cmds .y { color: var(--k-yellow); }
+
+/* 11 AI */
+.ai-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 32px;
+  flex: 1;
+}
+.ai-card {
+  background: var(--k-ink);
+  color: var(--k-cream);
+  border-radius: 16px;
+  padding: 44px 44px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.ai-card .num {
+  font-size: 88px;
+  font-weight: 800;
+  color: var(--k-yellow);
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+.ai-card h4 { font-size: 36px; font-weight: 700; margin: 0; letter-spacing: -0.02em; line-height: 1.1; }
+.ai-card p { font-size: 24px; line-height: 1.4; color: rgba(252,245,236,0.72); margin: 0; }
+.ai-card .who { font-size: 24px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--k-yellow); font-weight: 700; }
+
+/* 12 beyond AI */
+.s-beyondai .lede {
+  font-size: 30px;
+  line-height: 1.35;
+  color: var(--k-ink-soft);
+  max-width: 1100px;
+  margin: 0 0 36px;
+}
+.s-beyondai .lede em {
+  font-style: normal;
+  background: var(--k-yellow);
+  padding: 0 10px;
+  border-radius: 4px;
+}
+.beyond-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  flex: 1;
+  min-height: 0;
+  margin-bottom: 56px;
+}
+.bcard {
+  background: var(--k-cream);
+  border: 1.5px solid var(--k-rule-strong);
+  border-radius: 18px;
+  padding: 42px 44px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+}
+.bcard .num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 22px;
+  letter-spacing: 0.16em;
+  color: var(--k-muted);
+  text-transform: uppercase;
+}
+.bcard h3 {
+  font-size: 56px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.0;
+  margin: 0;
+}
+.bcard h3 .accent {
+  background: var(--k-yellow);
+  padding: 0 10px;
+  border-radius: 4px;
+}
+.bcard .desc {
+  font-size: 24px;
+  line-height: 1.4;
+  color: var(--k-ink-soft);
+  margin: 0;
+}
+.bcard .kv-line {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 18px;
+  border-top: 1.5px dashed var(--k-rule);
+}
+.bcard .kv-line .row {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  font-size: 21px;
+  color: var(--k-ink-soft);
+}
+.bcard .kv-line .row b { color: var(--k-ink); font-weight: 600; }
+.bcard .kv-line .row .arr { color: var(--k-muted); font-family: 'JetBrains Mono', monospace; }
+.bcard .visual {
+  background: var(--k-ink);
+  border-radius: 12px;
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+/* card 1: builder graph */
+.builder-svg {
+  width: 100%;
+  height: 168px;
+  display: block;
+}
+.builder-svg .node-rect { fill: var(--k-ink); stroke: var(--k-yellow); stroke-width: 1.5; }
+.builder-svg .node-rect.ds { fill: var(--k-cream); stroke: rgba(252,245,236,0.4); }
+.builder-svg .node-lbl { font: 600 13px 'JetBrains Mono', monospace; fill: var(--k-cream); }
+.builder-svg .node-lbl.ds { fill: var(--k-ink); }
+.builder-svg .edge { stroke: var(--k-yellow); stroke-width: 1.5; fill: none; opacity: 0.7; }
+.builder-svg .dot { fill: var(--k-yellow); }
+.bcard .palette {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font: 500 14px 'JetBrains Mono', monospace;
+  color: rgba(252,245,236,0.6);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.bcard .palette .chip {
+  width: 22px; height: 22px;
+  border-radius: 5px;
+  border: 1.5px solid rgba(252,245,236,0.25);
+}
+.bcard .palette .chip.y { background: var(--k-yellow); border-color: var(--k-yellow); }
+.bcard .palette .chip.g { background: #B8E0B0; border-color: #B8E0B0; }
+.bcard .palette .chip.b { background: #87CEEB; border-color: #87CEEB; }
+/* card 2: api snippet */
+.bcard .api {
+  background: var(--k-ink);
+  border-radius: 12px;
+  padding: 20px 24px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--k-cream);
+  white-space: pre;
+  overflow: hidden;
+}
+.bcard .api .k { color: #FFC900; }
+.bcard .api .s { color: #B8E0B0; }
+.bcard .api .v { color: #FCF5EC; }
+.bcard .api .p { color: #9C9285; }
+.bcard .api .fn { color: #FFE066; }
+.bcard .api .c { color: #9C9285; }
+.bcard .coming {
+  position: absolute;
+  top: 28px;
+  right: -52px;
+  background: var(--k-ink);
+  color: var(--k-yellow);
+  font: 700 14px/1 'JetBrains Mono', monospace;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 8px 60px;
+  transform: rotate(35deg);
+  box-shadow: 0 8px 18px -8px rgba(20,20,20,0.4);
+}
+
+/* 12 conferences */
+.conf-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  flex: 1;
+}
+.conf {
+  background: var(--k-cream);
+  border: 1.5px solid var(--k-rule-strong);
+  border-radius: 16px;
+  padding: 38px 44px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  position: relative;
+}
+.conf .when {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 24px;
+  letter-spacing: 0.08em;
+  color: var(--k-muted);
+  text-transform: uppercase;
+}
+.conf .title {
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+.conf .where { font-size: 24px; color: var(--k-ink-soft); }
+.conf .flag {
+  position: absolute;
+  top: 36px;
+  right: 44px;
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--k-yellow);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* 13 spotlight section header */
+.s-spotlight { background: var(--k-ink); color: var(--k-cream); }
+.s-spotlight .frame { justify-content: center; }
+.s-spotlight .eyebrow { color: var(--k-yellow); }
+.s-spotlight h2 {
+  font-size: 156px;
+  font-weight: 800;
+  line-height: 0.96;
+  letter-spacing: -0.04em;
+  margin: 0;
+  max-width: 1500px;
+}
+.s-spotlight h2 .yellow { color: var(--k-yellow); }
+.s-spotlight p {
+  font-size: 36px;
+  line-height: 1.35;
+  color: rgba(252,245,236,0.7);
+  max-width: 1300px;
+  margin: 48px 0 0;
+}
+
+/* 14, 15 project */
+.project .layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 72px;
+  flex: 1;
+  align-items: stretch;
+}
+.project .lcol { display: flex; flex-direction: column; justify-content: center; gap: 28px; }
+.project .badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--k-yellow);
+  color: var(--k-ink);
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  align-self: flex-start;
+}
+.project h2 {
+  font-size: 92px;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 0.96;
+  margin: 0;
+}
+.project .sub { font-size: 32px; color: var(--k-ink-soft); line-height: 1.35; margin: 0; max-width: 700px; }
+.project .links { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.project .links a {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 24px;
+  color: var(--k-muted);
+  text-decoration: none;
+}
+.project .links a b { color: var(--k-ink); font-weight: 600; }
+
+.project .rcol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: 1fr;
+  gap: 18px;
+}
+.metric {
+  background: var(--k-cream);
+  border: 1.5px solid var(--k-rule-strong);
+  border-radius: 14px;
+  padding: 30px 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+.metric .n {
+  font-size: 64px;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 0.95;
+  color: var(--k-ink);
+}
+.metric .n .unit { font-size: 28px; font-weight: 600; color: var(--k-muted); margin-left: 4px; }
+.metric .l { font-size: 24px; line-height: 1.3; color: var(--k-muted); font-weight: 500; }
+.metric.dark { background: var(--k-ink); color: var(--k-cream); border-color: var(--k-ink); }
+.metric.dark .n { color: var(--k-yellow); }
+.metric.dark .l { color: rgba(252,245,236,0.65); }
+.metric.wide { grid-column: span 2; }
+
+/* 14 Every Cure left visual */
+.matrix-illo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  align-content: stretch;
+}
+.matrix-illo .panel {
+  background: var(--k-cream);
+  border: 1.5px solid var(--k-rule-strong);
+  border-radius: 14px;
+  padding: 28px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.matrix-illo .panel.full { grid-column: span 2; }
+.matrix-illo .panel .lbl {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 24px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--k-muted);
+}
+.matrix-illo .panel .val { font-size: 32px; font-weight: 700; letter-spacing: -0.015em; line-height: 1.2; }
+.matrix-illo .panel.dark { background: var(--k-ink); color: var(--k-cream); border-color: var(--k-ink); }
+.matrix-illo .panel.dark .lbl { color: var(--k-yellow); }
+.matrix-illo .panel.yellow { background: var(--k-yellow); border-color: rgba(20,20,20,0.18); }
+
+/* 16 thanks */
+.s-thanks { background: var(--k-ink); color: var(--k-cream); }
+.s-thanks .frame { justify-content: center; gap: 40px; }
+.s-thanks .eyebrow { color: var(--k-yellow); }
+.s-thanks h2 {
+  font-size: 180px;
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 0.92;
+  margin: 0;
+}
+.s-thanks h2 .yellow { color: var(--k-yellow); }
+.s-thanks .links {
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+.s-thanks .link {
+  background: rgba(252,245,236,0.06);
+  border: 1px solid rgba(252,245,236,0.16);
+  border-radius: 12px;
+  padding: 28px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.s-thanks .link .l { font-size: 24px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(252,245,236,0.55); font-weight: 700; }
+.s-thanks .link .v { font-family: 'JetBrains Mono', monospace; font-size: 24px; color: var(--k-cream); font-weight: 500; letter-spacing: -0.01em; }
+.s-thanks .me {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 8px;
+}
+.s-thanks .me .name { font-size: 34px; font-weight: 700; }
+.s-thanks .me .role { font-size: 24px; color: rgba(252,245,236,0.6); }
+.s-thanks .me .handle {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 26px;
+  background: var(--k-yellow);
+  color: var(--k-ink);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+</style>
+</head>
+<body>
+
+<deck-stage width="1920" height="1080">
+
+<!-- 1 ───────── Title ───────── -->
+<section class="s-title" data-label="01 Title">
+  <div class="title-bg"></div>
+  <div class="title-content">
+    <div class="title-eyebrow">
+      <span class="pill">LF AI &amp; DATA MINI SUMMIT</span>
+      <span>May 21, 2026</span>
+    </div>
+    <h1 class="title-main">
+      Kedro<span class="beyond">: beyond&nbsp;1.0</span>
+    </h1>
+    <div class="title-rule"></div>
+    <div class="title-meta">
+      <div class="who">
+        <span class="name">Deepyaman Datta</span>
+        <span class="handles">
+        <span class="handle">
+          <svg class="gh-logo" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 005.47 7.59c.4.07.55-.17.55-.38v-1.32c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.81.06 1.23.83 1.23.83.72 1.23 1.88.87 2.34.67.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.01.08-2.11 0 0 .67-.22 2.2.82a7.6 7.6 0 014 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.91.08 2.11.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.19c0 .21.15.46.55.38A8 8 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          deepyaman
+        </span>
+        <span class="handle li" style="color: rgb(255, 201, 0)">
+          <svg class="gh-logo" viewBox="0 0 24 24"><path d="M22.23 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.46c.98 0 1.77-.77 1.77-1.72V1.72C24 .77 23.21 0 22.23 0zM7.27 20.1H3.65V9.24h3.62V20.1zM5.47 7.76h-.03c-1.22 0-2-.83-2-1.87 0-1.06.8-1.87 2.05-1.87 1.24 0 2 .8 2.02 1.87 0 1.04-.78 1.87-2.05 1.87zM20.34 20.1h-3.63v-5.8c0-1.45-.52-2.45-1.83-2.45-1 0-1.6.67-1.87 1.32-.1.23-.11.55-.11.88v6.05H9.28s.05-9.82 0-10.84h3.63v1.54a3.6 3.6 0 0 1 3.26-1.8c2.39 0 4.18 1.56 4.18 4.89v6.21z"/></svg>
+          deepyaman
+        </span>
+        </span>
+      </div>
+      <div class="event">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 2 ───────── What is Kedro ───────── -->
+<section data-label="02 What is Kedro">
+  <div class="frame">
+    <div class="brandbar">
+      <span class="left"><span class="logo-dot"></span> kedro</span>
+      <span class="right">kedro.org · github.com/kedro-org/kedro</span>
+    </div>
+    <p class="eyebrow"><span class="dash"></span>01 · The framework</p>
+    <h1 class="slide-title">What is Kedro?</h1>
+    <div class="layout s-what" style="display:grid;grid-template-columns:1.15fr 0.85fr;gap:80px;flex:1;align-items:stretch;">
+      <div class="left">
+        <p class="tagline">A toolbox for
+<em>production&#8209;ready</em>
+data and AI pipelines.</p>
+        <p class="desc">Open-source Python framework that applies software engineering principles to help write reproducible, maintainable, and modular data engineering and data science code.</p>
+      </div>
+      <div class="right">
+        <div class="stat-card yellow">
+          <div class="n">Graduated</div>
+          <div class="l">LF AI &amp; Data Foundation · <b>Dec 2024</b></div>
+        </div>
+        <div class="stat-card">
+          <div class="n">10k+</div>
+          <div class="l">GitHub stars · 100+ repeat contributors</div>
+        </div>
+        <div class="stat-card">
+          <div class="n">2,600+</div>
+          <div class="l">open-source users in Slack · 4k+ organizations</div>
+        </div>
+        <div class="stat-card logos">
+          <div class="logos-label">MAINTAINERS AT</div>
+          <div class="logo-grid">
+            <img src="logos/astronomer.svg" alt="Astronomer" />
+            <img src="logos/goldman-sachs.svg" alt="Goldman Sachs" />
+            <img src="logos/ing.svg" alt="ING" />
+            <img src="logos/physicsx.svg" alt="PhysicsX" />
+            <img src="logos/printify.svg" alt="Printify" />
+            <img src="logos/quantumblack.svg" alt="QuantumBlack, AI by McKinsey" />
+            <span class="wide"><img src="logos/societe-generale-assurances.png" alt="Société Générale Assurances" /></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <span class="footnum">02 / 18</span>
+    <span class="foothint">Kedro: Beyond 1.0</span>
+  </div>
+</section>
+
+<!-- 3 ───────── Four key concepts ───────── -->
+<section data-label="03 Four key concepts">
+  <div class="frame">
+    <div class="brandbar">
+      <span class="left"><span class="logo-dot"></span> kedro</span>
+      <span class="right">the building blocks</span>
+    </div>
+    <p class="eyebrow"><span class="dash"></span>02 · How it works</p>
+    <h1 class="slide-title">Four key concepts.</h1>
+    <div class="concepts">
+      <div class="concept">
+        <div>
+          <div class="num">01</div>
+          <h3>Project&nbsp;Template</h3>
+        </div>
+        <p>An opinionated, standardized layout. Every Kedro project looks the same — new team members are productive on day one.</p>
+      </div>
+      <div class="concept">
+        <div>
+          <div class="num">02</div>
+          <h3>Data&nbsp;Catalog</h3>
+        </div>
+        <p>Configuration as code that abstracts where data lives and how it's loaded — pandas, Spark, S3, Snowflake, partitioned, versioned. Nodes operate on data, not file paths.</p>
+      </div>
+      <div class="concept">
+        <div>
+          <div class="num">03</div>
+          <h3>Nodes</h3>
+        </div>
+        <p>Plain Python functions, with declared inputs and outputs. No decorators, no framework gymnastics — just functions you can unit test in isolation.</p>
+      </div>
+      <div class="concept">
+        <div>
+          <div class="num">04</div>
+          <h3>Pipelines</h3>
+        </div>
+        <p>Compose nodes into a DAG. Kedro resolves dependencies automatically from dataset names — no manual ordering, no orchestrator lock-in.</p>
+      </div>
+    </div>
+    <span class="footnum">03 / 18</span>
+    <span class="foothint">Kedro: Beyond 1.0</span>
+  </div>
+</section>
+
+<!-- 4 ───────── Project template ───────── -->
+<section class="s-template" data-label="04 Project template">
+  <div class="frame">
+    <div class="brandbar">
+      <span class="left"><span class="logo-dot"></span> kedro</span>
+      <span class="right">$ kedro new</span>
+    </div>
+    <p class="eyebrow"><span class="dash"></span>03 · Opinionated structure</p>
+    <h1 class="slide-title">The project template.</h1>
+    <div class="layout">
+      <div class="copy">
+        <h2>One layout. Every project.</h2>
+        <p>One <code style="font-family:'JetBrains Mono',monospace;background:var(--k-ink);color:var(--k-yellow);padding:2px 10px;border-radius:4px;font-size:24px;">kedro new</code> bootstraps a full project with the same shape. Walk into any Kedro repo and know where things live.</p>
+        <div class="kv-list">
+          <div class="kv"><span class="dot">→</span><span><b>Code in <code style="color:var(--k-ink);background:var(--k-cream-2);padding:1px 8px;border-radius:3px;">src/</code></b> — packaged, importable, testable</span></div>
+          <div class="kv"><span class="dot">→</span><span><b>Config in <code style="color:var(--k-ink);background:var(--k-cream-2);padding:1px 8px;border-radius:3px;">conf/</code></b> — base + environment overrides</span></div>
+          <div class="kv"><span class="dot">→</span><span><b>Data in <code style="color:var(--k-ink);background:var(--k-cream-2);padding:1px 8px;border-radius:3px;">data/</code></b> — layered progression from raw → output</span></div>
+        </div>
+      </div>
+      <pre class="code"><span class="c"># $ kedro new → spaceflights/</span>
+<span class="n">spaceflights/</span>
+<span class="p">├──</span> <span class="k">conf/</span>
+<span class="p">│   ├──</span> <span class="k">base/</span> <span class="c"># catalog.yml, parameters.yml</span>
+<span class="p">│   └──</span> <span class="k">local/</span> <span class="c"># credentials.yml</span>
+<span class="p">├──</span> <span class="k">data/</span>
+<span class="p">│   ├──</span> <span class="k">01_raw/</span>
+<span class="p">│   ├──</span> <span class="k">04_features/</span>
+<span class="p">│   └──</span> <span class="k">06_models/</span>
+<span class="p">├──</span> <span class="k">notebooks/</span>
+<span class="p">├──</span> <span class="k">src/</span><span class="v" style="color: rgb(255, 201, 0)">spaceflights/</span>
+<span class="p">│   ├──</span> <span class="k">pipelines/</span>
+<span class="p">│   └──</span> <span class="v">settings.py</span>
+<span class="p">├──</span> <span class="k">tests/</span>
+<span class="p">└──</span> <span class="v">pyproject.toml</span></pre>
+    </div>
+    <span class="footnum">04 / 18</span>
+    <span class="foothint">Kedro: Beyond 1.0</span>
+  </div>
+</section>
+
+<!-- 5 ───────── Data catalog ───────── -->
+<section class="s-catalog" data-label="05 The data catalog">
+  <div class="frame">
+    <div class="brandbar">
+      <span class="left"><span class="logo-dot"></span> kedro</span>
+      <span class="right">conf/base/catalog.yml</span>
+    </div>
+    <p class="eyebrow"><span class="dash"></span>04 · Separate I/O from logic</p>
+    <h1 class="slide-title">The data catalog.</h1>
+    <div class="layout">
+      <div class="copy">
+        <h2>Your code never sees a path.</h2>
+        <p>Swap CSV for Parquet, local for S3, dev for prod — one YAML edit. No node changes. No environment-specific branches.</p>
+        <div class="kv-list">
+          <div class="kv"><span class="dot">→</span><span><b>S3, GCS, Azure, DBFS, SFTP, local</b> — same interface</span></div>
+          <div class="kv"><span class="dot">→</span><span><b>pandas, Spark, Dask, Ibis, Polars</b> — pick your engine</span></div>
+          <div class="kv"><span class="dot">→</span><span><b>Versioning, lazy loading, partitioning</b> — built in</span></div>
+        </div>
+      </div>
+      <pre class="code"><span class="n">shuttles</span><span class="p">:</span>
+  <span class="k">type</span><span class="p">:</span> <span class="v">pandas.ParquetDataset</span>
+  <span class="k">filepath</span><span class="p">:</span> <span class="s">s3://kedro-demo/02_intermediate/shuttle.parquet</span>
+  <span class="k">credentials</span><span class="p">:</span> <span class="s">dev_s3</span>
+
+<span class="n">model_input_table</span><span class="p">:</span>
+  <span class="k">type</span><span class="p">:</span> <span class="v">spark.SparkDataset</span>
+  <span class="k">filepath</span><span class="p">:</span> <span class="s">s3a://kedro-demo/05_model_input/features.parquet</span>
+  <span class="k">file_format</span><span class="p">:</span> <span class="s">parquet</span>
+  <span class="k">save_args</span><span class="p">:</span>
+    <span class="k">mode</span><span class="p">:</span> <span class="s">overwrite</span>
+
+<span class="n">trained_model</span><span class="p">:</span>
+  <span class="k">type</span><span class="p">:</span> <span class="v">pickle.PickleDataset</span>
+  <span class="k">filepath</span><span class="p">:</span> <span class="s">data/06_models/regressor.pkl</span>
+  <span class="k">versioned</span><span class="p">:</span> <span class="v">true</span></pre>
+    </div>
+    <span class="footnum">05 / 18</span>
+    <span class="foothint">Kedro: Beyond 1.0</span>
+  </div>
+</section>
+
+<!-- 6 ───────── Nodes ───────── -->
+<section class="s-pipeline" data-label="06 Nodes">
+  <div class="frame">
+    <div class="brandbar">
+      <span class="left"><span class="logo-dot"></span> kedro</span>
+      <span class="right">src/&lt;project&gt;/pipelines/data_processing/nodes.py</span>
+    </div>
+    <p class="eyebrow"><span class="dash"></span>05 · The unit of work</p>
+    <h1 class="slide-title">Nodes are <em style="font-style:normal;background:var(--k-yellow);padding:0 14px;border-radius:6px;">just&nbsp;Python</em>.</h1>
+    <div class="layout">
+      <pre class="code"><span class="k">import</span> <span class="v">pandas</span> <span class="k">as</span> <span class="v">pd</span>
+
+<span class="k">def</span> <span class="fn">preprocess_companies</span><span class="p">(</span>companies<span class="p">:</span> <span class="ty">pd.DataFrame</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="ty">pd.DataFrame</span><span class="p">:</span>
+    <span class="s">"""Clean company records."""</span>
+    companies<span class="p">[</span><span class="s">"iata_approved"</span><span class="p">]</span> <span class="p">=</span> <span class="fn">_is_true</span><span class="p">(</span>companies<span class="p">[</span><span class="s">"iata_approved"</span><span class="p">])</span>
+    companies<span class="p">[</span><span class="s">"company_rating"</span><span class="p">]</span> <span class="p">=</span> <span class="fn">_parse_pct</span><span class="p">(</span>companies<span class="p">[</span><span class="s">"company_rating"</span><span class="p">])</span>
+    <span class="k">return</span> companies
+
+<span class="k">def</span> <span class="fn">create_model_input_table</span><span class="p">(</span>
+    shuttles<span class="p">:</span> <span class="ty">pd.DataFrame</span><span class="p">,</span>
+    companies<span class="p">:</span> <span class="ty">pd.DataFrame</span><span class="p">,</span>
+    reviews<span class="p">:</span> <span class="ty">pd.DataFrame</span><span class="p">,</span>
+<span class="p">)</span> <span class="p">-&gt;</span> <span class="ty">pd.DataFrame</span><span class="p">:</span>
+    <span class="s">"""Join tables to produce model input."""</span>
+    <span class="k">return</span> <span class="p">(</span>
+        shuttles
+        <span class="p">.</span><span class="fn">merge</span><span class="p">(</span>companies<span class="p">,</span> on<span class="p">=</span><span class="s">"company_id"</span><span class="p">)</span>
+        <span class="p">.</span><span class="fn">merge</span><span class="p">(</span>reviews<span class="p">,</span> on<span class="p">=</span><span class="s">"shuttle_id"</span><span class="p">)</span>
+    <span class="p">)</span></pre>
+      <div class="copy">
+        <h2>No decorators. No magic.</h2>
+        <p>A node is a plain Python function. Type hints are optional, docstrings are normal Python, and you can call it directly from a notebook or unit test.</p>
+        <div class="kv-list">
+          <div class="kv"><span class="dot">→</span><span><b>Pure functions</b> — same input, same output</span></div>
+          <div class="kv"><span class="dot">→</span><span><b>Unit-testable</b> with stock <code style="font-family:'JetBrains Mono',monospace;color:var(--k-ink);background:var(--k-cream-2);padding:1px 6px;border-radius:3px;font-size:0.86em;">pytest</code></span></div>
+          <div class="kv"><span class="dot">→</span><span><b>Multi-input, multi-output</b> — joins, splits, fan-outs</span></div>
+        </div>
+      </div>
+    </div>
+    <span class="footnum">06 / 18</span>
+    <span class="foothint">Kedro: Beyond 1.0</span>
+  </div>
+</section>
+
+<!-- 7 ───────── Pipelines ───────── -->
+<section class="s-pipeline" data-label="07 Pipelines">
+  <div class="frame">
+    <div class="brandbar">
+      <span class="left"><span class="logo-dot"></span> kedro</span>
+      <span class="right">src/&lt;project&gt;/pipelines/data_processing/pipeline.py</span>
+    </div>
+    <p class="eyebrow"><span class="dash"></span>06 · Composition
+    </p>
+    <h1 class="slide-title">Pipelines compose nodes into a DAG.</h1>
+    <div class="layout">
+      <div class="copy">
+        <h2>Names match. Kedro wires it up.</h2>
+        <p>Each <code style="font-family:'JetBrains Mono',monospace;color:var(--k-ink);background:var(--k-cream-2);padding:1px 6px;border-radius:3px;font-size:0.86em;">Node</code> declares its inputs and outputs by name. Kedro resolves the DAG, runs in topological order, and reads/writes through the catalog.</p>
+        <div class="kv-list">
+          <div class="kv"><span class="dot">→</span><span><b>Dataset-driven dependencies</b> — names match the catalog</span></div>
+          <div class="kv"><span class="dot">→</span><span><b>Sequential, parallel, threaded runners</b> runners — same code</span></div>
+          <div class="kv"><span class="dot">→</span><span><b>Namespaces &amp; parameters</b> — reuse and config-as-code</span></div>
+        </div>
+      </div>
+      <pre class="code"><span class="k">from</span> <span class="v">kedro.pipeline</span> <span class="k">import</span> <span class="v">Node, Pipeline</span>
+<span class="k">from</span> <span class="v">.nodes</span> <span class="k">import</span> <span class="v">(</span>
+    <span class="v">preprocess_companies, create_model_input_table</span><span class="v"></span>
+<span class="v">)</span>
+
+<span class="n">dp_pipeline</span> <span class="p">=</span> <span class="fn">Pipeline</span><span class="p">([</span>
+    <span class="fn">Node</span><span class="p">(</span>
+        <span class="k">func</span><span class="p">=</span><span class="fn">preprocess_companies</span><span class="p">,</span>
+        <span class="k">inputs</span><span class="p">=</span><span class="s">"companies"</span><span class="p">,</span>
+        <span class="k">outputs</span><span class="p">=</span><span class="s">"preprocessed_companies"</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="fn">Node</span><span class="p">(</span>
+        <span class="k">func</span><span class="p">=</span><span class="fn">create_model_input_table</span><span class="p">,</span>
+        <span class="k">inputs</span><span class="p">=[</span>
+            <span class="s">"shuttles"</span><span class="p">,</span> <span class="s">"preprocessed_companies"</span><span class="p">,</span> <span class="s">"reviews"</span><span class="p">,</span>
+        <span class="p">],</span>
+        <span class="k">outputs</span><span class="p">=</span><span class="s">"model_input_table"</span><span class="p">,</span>
+    <span class="p">),</span>
+<span class="p">])</span></pre>
+    </div>
+    <span class="footnum">07 / 18</span>
+    <span class="foothint">Kedro: Beyond 1.0</span>
+  </div>
+</section>
+
+<!-- 6 ───────── Quote ───────── -->
+<section class="s-quote" data-label="08 A familiar comparison">
+  <div class="frame">
+    <div class="brandbar">
+      <span class="left"><span class="logo-dot"></span> kedro</span>
+      <span class="right">a familiar comparison</span>
+    </div>
+    <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+      <div class="mark">“</div>
+      <blockquote>
+        Kedro is like <em>dbt</em> if it were created by Python data&nbsp;scientists instead of SQL data&nbsp;analysts — including both being created out of consulting&nbsp;companies.
+      </blockquote>
+      <div class="attr">
+        <span class="rule"></span>
+        <div>
+          <div class="name">Cody Peterson</div>
+          <div class="role">Product Manager, Ascend&nbsp;&nbsp;·&nbsp;&nbsp;formerly dbt Labs</div>
+        </div>
+      </div>
+    </div>
+    <span class="footnum">08 / 18</span>
+    <span class="foothint">Kedro: Beyond 1.0</span>
+  </div>
+</section>
+
+<!-- 7 ───────── Kedro 1.0 ───────── -->
+<section class="s-onezero" data-label="09 Kedro 1.0">
+  <div class="frame dark">
+    <div class="brandbar">
+      <span class="left" style="color: var(--k-yellow);"><span class="logo-dot"></span> kedro</span>
+      <span class="right">the milestone</span>
+    </div>
+    <div style="flex:1; display:flex; align-items:center;">
+      <div class="layout">
+        <div class="onezero-mega">1<span class="pt">.0</span></div>
+        <div class="right">
+          <p class="eyebrow"><span class="dash"></span>The milestone</p>
+          <h2>Six years in the open. One stable&nbsp;core.</h2>
+          <p>1.0 isn't just a version bump. It's a public-API commitment — a foundation you can build on with confidence, and a modular ecosystem you can grow around it.</p>
+          <div class="date"><span class="pill">RELEASED</span> 24 July 2025</div>
+        </div>
+      </div>
+    </div>
+    <span class="footnum">09 / 18</span>
+    <span class="foothint">Kedro: Beyond 1.0</span>
+  </div>
+</section>
+
+<!-- 8 ───────── What landed ───────── -->
+<section data-label="10 What landed in 1.0">
+  <div class="frame">
+    <div class="brandbar">
+      <span class="left"><span class="logo-dot"></span> kedro</span>
+      <span class="right">kedro.org/blog/announcing-kedro-1-0</span>
+    </div>
+    <p class="eyebrow"><span class="dash"></span>07 · What's inside</p>
+    <h1 class="slide-title">What landed in 1.0.</h1>
+    <div class="landed-grid">
+      <div class="landed hero">
+        <span class="tag">Headliner</span>
+        <h4>Revamped<br/>DataCatalog</h4>
+        <p>Datasets are first-class. Dict-style access, iteration, runtime assignment. <i>API-clean</i> after a year of research.</p>
+        <code>catalog["reviews"]</code>
+      </div>
+      <div class="landed">
+        <span class="tag">Long-awaited</span>
+        <h4>Run only missing</h4>
+        <p>Skip nodes whose outputs already exist. Requested since 2019 — finally shipped.</p>
+        <code>kedro run --only-missing-outputs</code>
+      </div>
+      <div class="landed">
+        <span class="tag">Kedro-Viz 12</span>
+        <h4>Workflow view</h4>
+        <p>Run status, timings, and dataset stats overlaid on the DAG. See where things broke at a glance.</p>
+      </div>
+      <div class="landed">
+        <span class="tag">DX</span>
+        <h4>Namespaces, fixed</h4>
+        <p>Exact matches, multi-namespace runs, dataset prefixing — the bits that confused everyone, sorted.</p>
+      </div>
+      <div class="landed">
+        <span class="tag">Performance</span>
+        <h4>Runner upgrades</h4>
+        <p><code style="background:transparent;color:inherit;padding:0;">ParallelRunner</code> + <code style="background:transparent;color:inherit;padding:0;">PartitionedDataset</code> finally play nice. Configurable start methods.</p>
+      </div>
+      <div class="landed">
+        <span class="tag">Onboarding</span>
+        <h4>New docs</h4>
+        <p>Brand-new IA, search, and modern install paths (uv, pipx, conda). Built for the way people read in 2025.</p>
+      </div>
+    </div>
+    <span class="footnum">10 / 18</span>
+    <span class="foothint">Kedro: Beyond 1.0</span>
+  </div>
+</section>
+
+<!-- 9 ───────── Ecosystem ───────── -->
+<section class="s-eco" data-label="11 Plugin ecosystem">
+  <div class="frame">
+    <div class="brandbar">
+      <span class="left"><span class="logo-dot"></span> kedro</span>
+      <span class="right">docs.kedro.org/en/stable/extend/plugins</span>
+    </div>
+    <p class="eyebrow"><span class="dash"></span>08 · Beyond the core</p>
+    <h1 class="slide-title">A growing ecosystem of&nbsp;integrations.</h1>
+    <div class="eco-grid">
+      <div class="eco-col maintained">
+        <span class="col-tag"><span class="marker"></span>Kedro&#8209;maintained</span>
+        <p class="blurb">Built and shipped by the Kedro core team — part of <code style="font-family:'JetBrains Mono',monospace;color:var(--k-yellow);font-size:0.92em;">kedro-org</code>, versioned alongside the framework. Plus native integrations baked into core.</p>
+        <div class="pills">
+          <span class="pill">Kedro&#8209;Viz</span>
+          <span class="pill">Kedro&#8209;Datasets</span>
+          <span class="pill">Kedro&#8209;Airflow</span>
+          <span class="pill">Kedro&#8209;Docker</span>
+          <span class="pill">Kedro&#8209;Telemetry</span>
+          <span class="pill">VS&nbsp;Code extension</span>
+          <span class="pill">Pydantic <em style="font-style:normal;color:var(--k-yellow);font-size:0.78em;letter-spacing:0.04em;margin-left:6px;">NATIVE</em></span>
+          <span class="pill">Pandera <em style="font-style:normal;color:var(--k-yellow);font-size:0.78em;letter-spacing:0.04em;margin-left:6px;">COMING&nbsp;SOON</em></span>
+        </div>
+        <div class="footer-line">github.com/kedro-org · maintained by TSC</div>
+      </div>
+      <div class="eco-col community">
+        <span class="col-tag"><span class="marker"></span>Community&#8209;led</span>
+        <p class="blurb">Independent maintainers connect Kedro to the wider data &amp; ML world — orchestrators, warehouses, deployment targets, MLOps.</p>
+        <div class="pills">
+          <span class="pill">Kedro&#8209;MLflow<em style="font-style:normal;background:var(--k-yellow);color:var(--k-ink);font-size:0.72em;font-weight:700;letter-spacing:0.06em;margin-left:8px;padding:1px 6px;border-radius:3px;">LF</em></span>
+          <span class="pill">Kedro&#8209;Databricks</span>
+          <span class="pill">Kedro&#8209;Dagster</span>
+          <span class="pill">Kedro&#8209;VertexAI</span>
+          <span class="pill">Kedro&#8209;AzureML</span>
+          <span class="pill">Kedro&#8209;Kubeflow<em style="font-style:normal;background:var(--k-yellow);color:var(--k-ink);font-size:0.72em;font-weight:700;letter-spacing:0.06em;margin-left:8px;padding:1px 6px;border-radius:3px;">CNCF</em></span>
+          <span class="pill">Kedro&#8209;SageMaker</span>
+          <span class="pill">Kedro&#8209;Boot</span>
+          <span class="pill">Kedro&#8209;Semantic&#8209;Layer</span>
+        </div>
+        <div class="footer-line"></div>
+      </div>
+    </div>
+    <span class="footnum">11 / 18</span>
+    <span class="foothint">Kedro: Beyond 1.0</span>
+  </div>
+</section>
+
+<!-- 10 ───────── 3 integrations ───────── -->
+<section data-label="12 Three integrations">
+  <div class="frame">
+    <div class="brandbar">
+      <span class="left"><span class="logo-dot"></span> kedro</span>
+      <span class="right">what's new</span>
+    </div>
+    <p class="eyebrow"><span class="dash"></span>09 · Ecosystem highlights</p>
+    <h1 class="slide-title">Three integrations to watch.</h1>
+    <div class="integ-grid">
+      <div class="integ">
+        <span class="tag">01 · PIPELINES AS MODELS</span>
+        <h3>Kedro&#8209;MLflow</h3>
+        <span class="lf-badge" style="background: var(--k-yellow); color: var(--k-ink);"><span class="dot" style="background: var(--k-ink);"></span>LF AI &amp; Data × Linux Foundation</span>
+        <p>Convert entire Kedro pipelines to custom MLflow models. Deploy them virtually anywhere.</p>
+        <div class="footer">
+          <div class="row"><b>kedro-mlflow.readthedocs.io</b></div>
+          <div class="row">by Yolan Honoré-Rougé &amp; Takieddine Kadiri</div>
+        </div>
+      </div>
+      <div class="integ">
+        <span class="tag">02 · Deployment</span>
+        <h3>Kedro&#8209;Databricks</h3>
+        <p>Generate Databricks jobs from Kedro pipeline definitions. Supports everything Declarative Automation Bundles support.</p>
+        <pre class="cmds"><span class="y">$</span> kedro databricks init
+<span class="y">$</span> kedro databricks bundle
+<span class="y">$</span> kedro databricks deploy</pre>
+        <div class="footer">
+          <div class="row"><b>kedro-databricks.readthedocs.io</b></div>
+          <div class="row">by Jens Peder Meldgaard
+</div>
+        </div>
+      </div>
+      <div class="integ">
+        <span class="tag">03 · Orchestration</span>
+        <h3>Kedro&#8209;Dagster</h3>
+        <p>Author in Kedro, orchestrate with Dagster. Auto-translates pipelines into Dagster jobs with native asset materializations and schedules.</p>
+        <div class="footer">
+          <div class="row"><b>kedro-dagster.readthedocs.io</b></div>
+          <div class="row">by stateful-y
+</div>
+        </div>
+      </div>
+    </div>
+    <span class="footnum">12 / 18</span>
+    <span class="foothint">Kedro: Beyond 1.0</span>
+  </div>
+</section>
+
+<!-- 11 ───────── Kedro & AI workflows ───────── -->
+<section data-label="13 Kedro and AI workflows">
+  <div class="frame dark">
+    <div class="brandbar">
+      <span class="left" style="color: var(--k-yellow);"><span class="logo-dot"></span> kedro</span>
+      <span class="right" style="color: rgba(252,245,236,0.55);">what's next</span>
+    </div>
+    <p class="eyebrow"><span class="dash"></span>10 · GenAI &amp; agents</p>
+    <h1 class="slide-title" style="color: var(--k-cream);">Kedro and AI&nbsp;workflows.</h1>
+    <p class="lede" style="color: rgba(252,245,236,0.7); margin-bottom: 40px;">Same software-engineering discipline. New data paradigms.</p>
+    <div class="ai-grid">
+      <div class="ai-card">
+        <div class="num">01</div>
+        <div class="who">For users</div>
+        <h4>Unstructured I/O,<br/>first-class.</h4>
+        <p>New dataset types for documents, embeddings, vector stores. Patterns for chunking, prompts, and retrieval baked into the catalog.</p>
+      </div>
+      <div class="ai-card">
+        <div class="num">02</div>
+        <div class="who">For contributors</div>
+        <h4>Kedro that AI<br/>can navigate.</h4>
+        <p>Skills to empower coding agents to drive Kedro changes towards a mergeable state, and the knowledge to proactively review Kedro pull requests.</p>
+      </div>
+      <div class="ai-card">
+        <div class="num">03</div>
+        <div class="who">For GenAI builders</div>
+        <h4>Agentic pipelines,<br/>reproducible.</h4>
+        <p>Bring rigor to RAG and agent workflows. The blog already ships a Kedro × LangChain chatbot reference — a lot more coming.</p>
+      </div>
+    </div>
+    <span class="footnum" style="color: rgba(252,245,236,0.4);">13 / 18</span>
+    <span class="foothint" style="color: rgba(252,245,236,0.55);">Kedro: Beyond 1.0</span>
+  </div>
+</section>
+
+<!-- 12 ───────── Beyond AI / what's next on the core ───────── -->
+<section class="s-beyondai" data-label="14 Beyond AI">
+  <div class="frame">
+    <div class="brandbar">
+      <span class="left"><span class="logo-dot"></span> kedro</span>
+      <span class="right">what's next · core</span>
+    </div>
+    <p class="eyebrow"><span class="dash"></span>11 · The core keeps shipping</p>
+    <h1 class="slide-title">It's not all about <em style="font-style:normal;background:var(--k-yellow);padding:0 14px;border-radius:6px;">AI</em>.</h1>
+    <p class="lede">Two of the most-requested ideas in the roadmap are aimed squarely at how you <em>author</em> and how you <em>run</em> Kedro — no GenAI required.</p>
+    <div class="beyond-grid">
+      <div class="bcard">
+        <span class="num">01 · IDE-free authoring</span>
+        <h3>Kedro&nbsp;<span class="accent">Builder</span>.</h3>
+        <p class="desc">A visual, drag-and-drop pipeline builder. Compose nodes, wire datasets, edit parameters — all from the browser. Commit the same Kedro project to git.</p>
+        <div class="visual">
+          <svg class="builder-svg" viewBox="0 0 520 168" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+            <!-- edges -->
+            <path class="edge" d="M 92 36 C 130 36, 130 84, 168 84" />
+            <path class="edge" d="M 92 132 C 130 132, 130 84, 168 84" />
+            <path class="edge" d="M 268 84 C 300 84, 300 84, 332 84" />
+            <path class="edge" d="M 432 84 C 460 84, 460 84, 500 84" />
+            <!-- input datasets -->
+            <rect class="node-rect ds" x="12" y="20" width="80" height="32" rx="6" />
+            <text class="node-lbl ds" x="22" y="40">companies</text>
+            <rect class="node-rect ds" x="12" y="116" width="80" height="32" rx="6" />
+            <text class="node-lbl ds" x="22" y="136">shuttles</text>
+            <!-- node 1 -->
+            <rect class="node-rect" x="168" y="68" width="100" height="32" rx="6" />
+            <text class="node-lbl" x="180" y="88">preprocess</text>
+            <!-- output dataset -->
+            <rect class="node-rect ds" x="332" y="68" width="100" height="32" rx="6" />
+            <text class="node-lbl ds" x="344" y="88">model_input</text>
+            <!-- output edge -->
+            <circle class="dot" cx="504" cy="84" r="4" />
+          </svg>
+          <div class="palette">
+            <span class="chip y"></span>
+            <span class="chip g"></span>
+            <span class="chip b"></span>
+            <span style="margin-left: 8px;">node · dataset · param</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bcard">
+        <span class="coming">Coming&nbsp;soon</span>
+        <span class="num">02 · Kedro as a callable service</span>
+        <h3>Sessions&nbsp;<span class="accent">API</span>.</h3>
+        <p class="desc">An enhanced Kedro session for repeated, multi-run execution, plus a public API for pipeline execution and inspection — Kedro behind an HTTP boundary.</p>
+        <pre class="api"><span class="k">from</span> <span class="v">kedro.framework.session</span> <span class="k">import</span> <span class="v">KedroSession</span>
+
+<span class="k">with</span> <span class="fn">KedroSession</span><span class="p">.</span><span class="fn">create</span><span class="p">()</span> <span class="k">as</span> session<span class="p">:</span>
+    session<span class="p">.</span><span class="fn">run</span><span class="p">(</span>pipeline<span class="p">=</span><span class="s">"dp"</span><span class="p">,</span> tags<span class="p">=[</span><span class="s">"daily"</span><span class="p">])</span>
+    session<span class="p">.</span><span class="fn">run</span><span class="p">(</span>pipeline<span class="p">=</span><span class="s">"ds"</span><span class="p">,</span> params<span class="p">=</span>config<span class="p">)</span>  <span class="c"># reuse</span>
+    session<span class="p">.</span><span class="fn">inspect</span><span class="p">()</span>                          <span class="c"># status</span></pre>
+      </div>
+    </div>
+    <span class="footnum">14 / 18</span>
+    <span class="foothint">Kedro: Beyond 1.0</span>
+  </div>
+</section>
+
+<!-- 13 ───────── Spotlight ───────── -->
+<section class="s-spotlight" data-label="15 Spotlight">
+  <div class="frame dark">
+    <div class="brandbar">
+      <span class="left" style="color: var(--k-yellow);"><span class="logo-dot"></span> kedro</span>
+      <span class="right" style="color: rgba(252,245,236,0.55);">spotlight</span>
+    </div>
+    <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+      <p class="eyebrow"><span class="dash"></span>12 · Spotlight</p>
+      <h2>Kedro for<br/><span class="yellow">open&nbsp;science.</span></h2>
+      <p>Reproducibility is in our tagline. So it should be no surprise that some of the most rigorous open-science work is being built on top of us.</p>
+    </div>
+    <span class="footnum" style="color: rgba(252,245,236,0.4);">15 / 18</span>
+    <span class="foothint" style="color: rgba(252,245,236,0.55);">Kedro: Beyond 1.0</span>
+  </div>
+</section>
+
+<!-- 14 ───────── MATRIX / Every Cure ───────── -->
+<section class="project" data-label="16 MATRIX Every Cure">
+  <div class="frame">
+    <div class="brandbar">
+      <span class="left"><span class="logo-dot"></span> kedro</span>
+      <span class="right">github.com/everycure-org/matrix</span>
+    </div>
+    <p class="eyebrow"><span class="dash"></span>13 · Open science · 01</p>
+    <div class="layout">
+      <div class="lcol">
+        <span class="badge">Every Cure · 501(c)(3)</span>
+        <h2>MATRIX.</h2>
+        <p class="sub">A drug-repurposing knowledge graph built to find new uses for every approved drug — for every disease.</p>
+        <p class="sub" style="font-size:26px;">End-to-end Kedro pipeline: clinical &amp; biomedical ingestion → embeddings → ranking → candidate-disease pairs, fully reproducible.</p>
+        <div class="links">
+          <a><b>github.com</b>/everycure-org/matrix</a>
+          <a><b>everycure.org</b> · drug repurposing for all</a>
+        </div>
+      </div>
+      <div class="matrix-illo">
+        <div class="panel yellow"><span class="lbl">Mission</span><span class="val">Find every cure for every disease, using every drug.</span></div>
+        <div class="panel dark"><span class="lbl">Data sources</span><span class="val">Clinical · biomedical ontologies · literature</span></div>
+        <div class="panel"><span class="lbl">Backbone</span><span class="val">Kedro pipelines orchestrating the entire workflow</span></div>
+        <div class="panel full"><span class="lbl">Output</span><span class="val">Ranked drug-disease pairs · validated with clinicians · accelerating real repurposing trials</span></div>
+      </div>
+    </div>
+    <span class="footnum">16 / 18</span>
+    <span class="foothint">Kedro: Beyond 1.0</span>
+  </div>
+</section>
+
+<!-- 15 ───────── OptimusKG ───────── -->
+<section class="project" data-label="17 OptimusKG">
+  <div class="frame">
+    <div class="brandbar">
+      <span class="left"><span class="logo-dot"></span> kedro</span>
+      <span class="right">optimuskg.ai · github.com/mims-harvard/OptimusKG</span>
+    </div>
+    <p class="eyebrow"><span class="dash"></span>13 · Open science · 02</p>
+    <div class="layout">
+      <div class="lcol">
+        <span class="badge">Zitnik Lab · Harvard</span>
+        <h2>OptimusKG.</h2>
+        <p class="sub">A modern biomedical knowledge graph spanning molecular, anatomical, clinical, and environmental modalities — grounded in 18 ontologies.</p>
+        <p class="sub" style="font-size:26px;">Reproducible, deterministic, infrastructure-agnostic Kedro pipeline with parallel execution. Validated with PaperQA3.</p>
+        <div class="links">
+          <a><b>optimuskg.ai</b> · arxiv.org/pdf/2604.27269</a>
+          <a><b>pypi.org</b>/project/optimuskg · doi.org/10.7910/DVN/IYNGEV</a>
+        </div>
+      </div>
+      <div class="rcol">
+        <div class="metric dark">
+          <div class="n">190,531</div>
+          <div class="l">Nodes across <b style="color:var(--k-yellow);">10 entity types</b></div>
+        </div>
+        <div class="metric">
+          <div class="n">21.8<span class="unit">M</span></div>
+          <div class="l">Edges across 27 relation types</div>
+        </div>
+        <div class="metric">
+          <div class="n">67.2<span class="unit">M</span></div>
+          <div class="l">Property instances</div>
+        </div>
+        <div class="metric">
+          <div class="n">65</div>
+          <div class="l">Heterogeneous resources integrated</div>
+        </div>
+        <div class="metric wide" style="background: var(--k-yellow); border-color: rgba(20,20,20,0.18);">
+          <div class="n" style="color: var(--k-ink);">110<span class="unit" style="color: var(--k-ink);">M values · 150 property keys</span></div>
+          <div class="l" style="color: var(--k-ink);">Distributed as <b>Apache Parquet</b> · downloadable via the <code style="font-family:'JetBrains Mono',monospace; font-size:24px; background:var(--k-ink); color:var(--k-yellow); padding:2px 8px; border-radius:4px;">optimuskg</code> Python client</div>
+        </div>
+      </div>
+    </div>
+    <span class="footnum">17 / 18</span>
+    <span class="foothint">Kedro: Beyond 1.0</span>
+  </div>
+</section>
+
+<!-- 16 ───────── Get involved ───────── -->
+<section class="s-thanks" data-label="18 Get involved">
+  <div class="frame dark">
+    <div class="brandbar">
+      <span class="left" style="color: var(--k-yellow);"><span class="logo-dot"></span> kedro</span>
+      <span class="right" style="color: rgba(252,245,236,0.55);">thank you</span>
+    </div>
+    <p class="eyebrow">14 · THE END</p>
+    <h2>Get<br/><span class="yellow">involved.</span></h2>
+    <div class="links">
+      <div class="link">
+        <span class="l">Star</span>
+        <span class="v">github.com/<br/>kedro-org/kedro</span>
+      </div>
+      <div class="link">
+        <span class="l">Chat</span>
+        <span class="v">slack.kedro.org</span>
+      </div>
+      <div class="link">
+        <span class="l">Read</span>
+        <span class="v">docs.kedro.org<br/>kedro.org/blog</span>
+      </div>
+      <div class="link">
+        <span class="l">Watch</span>
+        <span class="v">youtube.com/<br/>@kedro-python</span>
+      </div>
+    </div>
+    <div class="me">
+      <span class="name">Deepyaman Datta</span>
+      <span class="role">— Kedro Maintainer —</span>
+      <span class="handle">
+        <svg class="gh-logo" viewBox="0 0 16 16" style="fill: var(--k-ink); width: 22px; height: 22px;"><path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 005.47 7.59c.4.07.55-.17.55-.38v-1.32c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.81.06 1.23.83 1.23.83.72 1.23 1.88.87 2.34.67.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.01.08-2.11 0 0 .67-.22 2.2.82a7.6 7.6 0 014 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.91.08 2.11.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.19c0 .21.15.46.55.38A8 8 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        deepyaman
+      </span>
+    </div>
+    <span class="footnum" style="color: rgba(252,245,236,0.4);">18 / 18</span>
+    <span class="foothint" style="color: rgba(252,245,236,0.55);">Kedro: Beyond 1.0 · LF AI &amp; Data Mini Summit · May 21, 2026</span>
+  </div>
+</section>
+
+</deck-stage>
+</body>
+</html>
